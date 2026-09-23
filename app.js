@@ -1,6 +1,6 @@
 import { LOCATIONS, DAY_NAMES, DAY_LETTERS } from './data.js';
 import { fmtTime, fmtRange, fmtDuration, statusFor, rank, spanMinutes, periodsFor, dateKey } from './hours.js';
-import { STOPS, stopInfo, activeWindow, fmtClock, freqLabel, EARLY_LOOP, SPECIAL_SERVICE_NOTICES, SCHEDULE_CHECKED, LIVE_TRACKER_URL } from './shuttle.js';
+import { ROUTES, STINGERETTE, DISCONTINUED_NOTE, STOP_LEVEL_CAVEAT, SCHEDULE_CHECKED, SOURCE_URL, LIVE_TRACKER_URL } from './shuttle.js';
 import { LIBRARIES, libraryStatusFor, LIBRARIES_CHECKED, LIBRARIES_HUB_URL } from './libraries.js';
 
 const root = document.getElementById('app');
@@ -31,7 +31,6 @@ const state = {
   detailId: null,
   query: '',
   openRows: new Set(),
-  shuttleStop: null,
   filterGroup: 'all', // 'all' | 'hall' | 'cafe' | 'rec' | 'library' — resets to 'all' on every fresh load, not persisted
   justToggledId: null // set right before a row-expand toggle, consumed by the next render
 };
@@ -352,90 +351,124 @@ function renderWeek() {
 
 // ---------- Shuttle tab ----------
 
-function renderShuttle() {
-  const stopId = state.shuttleStop;
-  const info = stopId ? stopInfo(stopId, state.now, state.today) : null;
-  const stopName = stopId ? STOPS.find((s) => s.id === stopId).name : null;
-  // Overall service status (independent of any stop pick) so the tab is useful
-  // the instant you open it, not just after tapping a stop.
-  const overallWin = activeWindow(state.now, state.today);
+function shuttleRouteStatus(route) {
+  const day = selectedDay();
+  const isToday = day === state.today;
+  return statusFor(periodsFor(route, day, dateKeyForDayIndex(day)), isToday, state.now);
+}
 
-  // Once a stop is picked, lead with the actual answer to "when's the next
-  // bus" instead of a route/variant name — the frequency window already IS
-  // a wait-time estimate (the longest you'd wait for a random arrival), just
-  // reframed as one instead of presented as schedule metadata.
-  const headline = info
-    ? (info.servedNow ? `Next bus in about ${freqLabel(info.win.freq).replace('every ', '')}` : info.win ? 'Not on this route right now' : 'No scheduled service right now')
-    : (overallWin ? overallWin.variant : 'Not running right now');
-  const subline = info
-    ? (info.servedNow ? `${stopName} · ${info.win.variant}` : stopName)
-    : (overallWin ? `Running · ${freqLabel(overallWin.freq)} · pick a stop below` : 'Pick a stop below for the regular schedule');
+// The Stingerette's 8pm-3:15am window spills past midnight into the next
+// calendar day, which hours.js's statusFor doesn't model (it only handles
+// periods ending at or before midnight) — libraries.js needed its own status
+// logic for the same reason. Runs identically every day, so this only needs
+// to reason about "today vs. spilled over from last night," not a weekly
+// pattern.
+function stingeretteStatus(day) {
+  const p = STINGERETTE.days[0][0];
+  const spilloverEnd = p.e - 1440;
+  if (day !== state.today) {
+    return { kind: 'sched', label: `${fmtTime(p.s)}–${fmtTime(spilloverEnd)}`, sub: 'Posted hours for that day', cur: null };
+  }
+  const now = state.now;
+  const activeTonight = now >= p.s;
+  const activeFromLastNight = now < spilloverEnd;
+  if (activeTonight || activeFromLastNight) {
+    const left = activeFromLastNight ? (spilloverEnd - now) : ((1440 - now) + spilloverEnd);
+    return {
+      kind: left <= 60 ? 'soon' : 'open',
+      label: left <= 60 ? `Closes in ${fmtDuration(left)}` : 'Open',
+      sub: `Available until ${fmtTime(spilloverEnd)}`,
+      cur: null
+    };
+  }
+  return { kind: 'later', label: `Opens ${fmtTime(p.s)}`, sub: 'Available', next: { s: p.s }, cur: null };
+}
 
+function renderShuttleRouteCard(route) {
+  const st = shuttleRouteStatus(route);
+  const p = pillFor(st);
+  const isOpen = st.kind === 'open' || st.kind === 'soon';
+  const sub = isOpen ? capitalize(st.sub)
+    : st.kind === 'later' ? `${st.sub} starts ${fmtTime(st.next.s)}`
+      : st.kind === 'sched' ? 'Posted hours for this day'
+        : 'Not running today';
   return `
-    <div class="header">
-      <div class="header-row">
-        <div>
-          <div class="wordmark">${APP_NAME}</div>
-          <div class="headline">${esc(headline)}</div>
-          <div class="subline">${esc(subline)}</div>
+    <div class="row-card${isOpen ? ' is-open' : ''}" style="cursor:default">
+      <div class="row-top">
+        <div class="row-name-wrap">
+          <div class="row-name" style="color:${st.kind === 'closed' ? 'rgba(5,30,57,.66)' : '#051e39'}">${esc(route.name)}</div>
         </div>
+        <span class="pill" style="background:${p.bg};color:${p.ink}">
+          <span class="pill-dot" style="background:${p.dot}"></span>
+          <span class="pill-text">${esc(p.text)}</span>
+        </span>
       </div>
-    </div>
-    <div class="stop-strip">
-      ${STOPS.map((s) => `
-        <button class="stop-chip${s.id === stopId ? ' is-selected' : ''}" data-action="pick-stop" data-id="${s.id}">${esc(s.name)}</button>
-      `).join('')}
-    </div>
-    <div class="body-scroll">
-      <a class="tracker-link" href="${LIVE_TRACKER_URL}" target="_blank" rel="noopener">
-        Open live tracker — real bus positions ${icon.external}
-      </a>
-      <div style="height:14px"></div>
-      ${info ? renderStopDetail(stopId, stopName, info) : `<div class="empty-state">Pick a stop above for its next departures.</div>`}
-      <div class="note-card" style="margin-top:9px">
-        <div class="note-key">Early loop</div>
-        <div class="note-val">${esc(EARLY_LOOP.text)}</div>
-      </div>
-      <div class="group-head" style="margin-top:6px"><span class="group-title">Special service — verify dates first</span></div>
-      <div class="notes-list">
-        ${SPECIAL_SERVICE_NOTICES.map((n) => `
-          <div class="note-card">
-            <div class="note-key">${esc(n.k)}</div>
-            <div class="note-val">${esc(n.v)}</div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="footnote">Regular schedule checked ${esc(SCHEDULE_CHECKED)}. This is not a live feed — use the tracker link above for real-time bus positions.</div>
+      <div class="row-sub" style="color:${isOpen ? 'rgba(5,30,57,.78)' : 'rgba(5,30,57,.62)'}">${esc(sub)}</div>
+      ${route.note ? `<div class="row-empty-note" style="padding-top:6px">${esc(route.note)}</div>` : ''}
     </div>
   `;
 }
 
-function renderStopDetail(stopId, stopName, info) {
-  const allWindowsForStop = info.allWindows;
+function renderShuttle() {
+  const day = selectedDay();
+  const isToday = day === state.today;
+  const statuses = ROUTES.map((r) => shuttleRouteStatus(r));
+  const runningCount = statuses.filter((s) => s.kind === 'open' || s.kind === 'soon').length;
+  const scheduledCount = statuses.filter((s) => s.kind !== 'closed').length;
+  const stingeretteSt = stingeretteStatus(day);
+
+  const headline = isToday ? `${runningCount} of ${ROUTES.length} routes running` : DAY_NAMES[day];
+  const subline = isToday ? 'Stinger campus shuttle' : `${scheduledCount} of ${ROUTES.length} routes scheduled`;
+  const groupCount = isToday ? `${runningCount} running` : `${scheduledCount} scheduled`;
 
   return `
-    <div class="detail-section-head" style="padding-top:2px">
-      <span class="detail-section-title">${esc(stopName)}</span>
-    </div>
-    ${!info.win ? `<div class="row-empty-note" style="padding:0 4px 12px">No shuttle window is active right now.</div>` : ''}
-    ${info.win && !info.servedNow ? `<div class="row-empty-note" style="padding:0 4px 12px">Right now the shuttle is running ${esc(info.win.variant)} (${freqLabel(info.win.freq)}), which doesn’t stop here. See this stop’s windows below.</div>` : ''}
-    ${info.servedNow && info.nextStops.length ? `<div class="row-empty-note" style="padding:0 4px 12px">Next stops: ${info.nextStops.map((id) => esc(STOPS.find((s) => s.id === id).name)).join(', ')}</div>` : ''}
-    <div class="period-list">
-      ${allWindowsForStop.map((w) => {
-        const active = info.win === w;
-        return `
-          <div class="period-card" style="background:${active ? 'rgba(35,147,77,.14)' : 'var(--card)'};border-color:${active ? 'rgba(35,147,77,.35)' : 'var(--border)'}">
-            <div class="period-left">
-              <span class="period-dot" style="background:${active ? '#23934d' : '#8f713d'}"></span>
-              <div>
-                <div class="period-name" style="color:#051e39">${w.days === 'weekday' ? 'Weekdays' : 'Weekends'} · ${esc(w.variant)}</div>
-                <div class="period-state" style="color:${active ? '#176b38' : 'rgba(5,30,57,.62)'}">${freqLabel(w.freq)}</div>
-              </div>
-            </div>
-            <span class="period-range" style="color:#051e39">${fmtClock(w.start)}–${fmtClock(w.end)}</span>
+    <div class="banner">
+      <div class="header">
+        <div class="header-row">
+          <div>
+            <div class="wordmark">${APP_NAME}</div>
+            <div class="headline">${esc(headline)}</div>
+            <div class="subline">${esc(subline)}</div>
           </div>
-        `;
-      }).join('')}
+        </div>
+      </div>
+      ${renderDayStrip()}
+    </div>
+    <div class="body-scroll">
+      <a class="tracker-link" href="${LIVE_TRACKER_URL}" target="_blank" rel="noopener">
+        Open live tracker (TransLoc) — real bus positions &amp; stops ${icon.external}
+      </a>
+      <div style="height:14px"></div>
+      <div class="group-head"><span class="group-title">Stinger routes</span><span class="group-count">${esc(groupCount)}</span></div>
+      <div class="group-list">${ROUTES.map(renderShuttleRouteCard).join('')}</div>
+
+      <div class="group-head" style="margin-top:6px"><span class="group-title">Stingerette</span></div>
+      <div class="group-list">
+        <div class="row-card${stingeretteSt.kind === 'open' ? ' is-open' : ''}" style="cursor:default">
+          <div class="row-top">
+            <div class="row-name-wrap">
+              <div class="row-name" style="color:#051e39">${esc(STINGERETTE.name)}</div>
+              <div class="row-place">On-demand · book ahead, not a fixed loop</div>
+            </div>
+            <span class="pill" style="background:${pillFor(stingeretteSt).bg};color:${pillFor(stingeretteSt).ink}">
+              <span class="pill-dot" style="background:${pillFor(stingeretteSt).dot}"></span>
+              <span class="pill-text">${esc(pillFor(stingeretteSt).text)}</span>
+            </span>
+          </div>
+          <div class="row-empty-note" style="padding-top:6px">${esc(STINGERETTE.note)}</div>
+          <a class="row-view-week" href="${STINGERETTE.bookingUrl}" target="_blank" rel="noopener">Book a ride &rsaquo;</a>
+        </div>
+      </div>
+
+      <div class="note-card" style="margin-top:14px">
+        <div class="note-key">Route changes</div>
+        <div class="note-val">${esc(DISCONTINUED_NOTE)}</div>
+      </div>
+      <div class="note-card" style="margin-top:9px">
+        <div class="note-key">What's not shown here</div>
+        <div class="note-val">${esc(STOP_LEVEL_CAVEAT)}</div>
+      </div>
+      <div class="footnote">Schedule checked ${esc(SCHEDULE_CHECKED)} from <a href="${SOURCE_URL}" target="_blank" rel="noopener" style="color:inherit">GT Parking & Transportation</a>. Not a live feed — use the tracker link above for real-time bus positions.</div>
     </div>
   `;
 }
@@ -898,8 +931,7 @@ function attachHandlers() {
         // clock tick, a search keystroke) never replays the animation.
         state.justToggledId = id;
         setState({ openRows: next });
-      } else if (action === 'pick-stop') setState({ shuttleStop: el.dataset.id });
-      else if (action === 'pick-filter') setState({ filterGroup: el.dataset.group });
+      } else if (action === 'pick-filter') setState({ filterGroup: el.dataset.group });
     });
   });
 }
