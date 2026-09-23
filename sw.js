@@ -1,4 +1,4 @@
-const CACHE = 'gt-now-v1';
+const CACHE = 'gt-now-v2';
 const ASSETS = [
   './',
   './index.html',
