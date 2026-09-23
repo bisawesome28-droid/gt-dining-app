@@ -267,6 +267,11 @@ export const LOCATIONS = [
     'A separate Student Center recreation venue — not part of the CRC building.',
     { sourceUrl: SOURCE_STUDENT_CENTER, checked: 'Sep 23, 2026' }),
 
+  L('stamps-health-services', 'Stamps Health Services', 'Joseph Brown Whitehead Building · 740 Ferst Dr NW', 'rec',
+    weekFromRanges('8am-5pm', '8am-5pm', '8am-5pm', '9am-5pm', '8am-5pm', 'Closed', 'Closed'),
+    'Primary care, the appointment desk, and most other services follow these hours (the appointment desk itself closes at 4:30pm). Summer semester hours run 8am–4:30pm Mon–Fri instead — not modeled here since this snapshot was checked during the fall term. Closed weekends and holidays; for care outside these hours, see the official After Hours page rather than assuming anything here applies.',
+    { sourceUrl: 'https://health.gatech.edu/hours/', checked: 'Sep 23, 2026' }),
+
   // ---------- Mail & packages ----------
 
   L('georgia-tech-post-office', 'Georgia Tech Post Office', 'John Lewis Student Center, 1st floor · 351 Ferst Dr NW', 'rec',
