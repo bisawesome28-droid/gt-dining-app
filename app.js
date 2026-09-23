@@ -10,7 +10,7 @@ let lastViewKey = null;
 // Change this once — it drives the wordmark on all three tabs. Also update
 // index.html's <title>/apple-mobile-web-app-title and manifest.webmanifest's
 // name/short_name to match.
-const APP_NAME = 'Campus Now';
+const APP_NAME = 'GT Now';
 
 function nowParts() {
   const n = new Date();
@@ -48,12 +48,12 @@ function setState(patch) {
 // ---------- Icons ----------
 
 const icon = {
-  search: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(36,33,36,.45)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21"></path></svg>`,
+  search: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(5,30,57,.45)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21"></path></svg>`,
   today: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v4.8l3.4 2"></path></svg>`,
   week: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8.5 3.2v3.4M15.5 3.2v3.4"></path></svg>`,
   shuttle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="11" rx="3"></rect><path d="M3.5 11h17M7 16.5v2M17 16.5v2"></path><circle cx="7.5" cy="16.2" r=".4" fill="currentColor"></circle><circle cx="16.5" cy="16.2" r=".4" fill="currentColor"></circle></svg>`,
   external: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M18.5 5.5 10 14"></path><path d="M18 13v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"></path></svg>`,
-  back: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbf6ec" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5 8 12l6.5 6.5"></path></svg>`
+  back: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5 8 12l6.5 6.5"></path></svg>`
 };
 
 // ---------- Pill styling per status kind ----------
@@ -61,10 +61,10 @@ const icon = {
 function pillFor(st) {
   if (st.kind === 'open') return { text: 'Open', bg: 'var(--green-wash)', ink: 'var(--green-ink)', dot: 'var(--green)' };
   if (st.kind === 'soon') return { text: 'Closing', bg: 'var(--amber-wash)', ink: 'var(--amber-ink)', dot: 'var(--amber)' };
-  if (st.kind === 'later') return { text: `Opens ${fmtTime(st.next.s)}`, bg: 'var(--neutral-wash)', ink: 'rgba(36,33,36,.72)', dot: 'rgba(36,33,36,.62)' };
-  if (st.kind === 'sched') return { text: st.label, bg: 'var(--neutral-wash)', ink: 'rgba(36,33,36,.72)', dot: 'rgba(36,33,36,.62)' };
+  if (st.kind === 'later') return { text: `Opens ${fmtTime(st.next.s)}`, bg: 'var(--neutral-wash)', ink: 'rgba(5,30,57,.72)', dot: 'rgba(5,30,57,.62)' };
+  if (st.kind === 'sched') return { text: st.label, bg: 'var(--neutral-wash)', ink: 'rgba(5,30,57,.72)', dot: 'rgba(5,30,57,.62)' };
   if (st.kind === 'unknown') return { text: 'Check hours', bg: 'var(--amber-wash)', ink: 'var(--amber-ink)', dot: 'var(--amber)' };
-  return { text: 'Closed', bg: 'rgba(36,33,36,.06)', ink: 'rgba(36,33,36,.4)', dot: 'rgba(36,33,36,.18)' };
+  return { text: 'Closed', bg: 'rgba(5,30,57,.06)', ink: 'rgba(5,30,57,.4)', dot: 'rgba(5,30,57,.18)' };
 }
 
 // Libraries follow a dated calendar, not a recurring weekly pattern, and some
@@ -115,7 +115,7 @@ function buildRows(list, day, dateStr) {
     const p = pillFor(st);
     const isOpen = st.kind === 'open' || st.kind === 'soon';
     const live = st.cur ? (state.now - st.cur.s) / (st.cur.e - st.cur.s) : 0;
-    const sub = loc.group === 'library'
+    const sub = loc.group === 'library' && loc.accessNote
       ? st.sub
       : isOpen
         ? capitalize(st.sub)
@@ -124,7 +124,7 @@ function buildRows(list, day, dateStr) {
           : st.kind === 'sched'
             ? st.sub
             : 'No service today';
-    const periods = loc.group === 'library' ? [] : periodsFor(loc, day, dateStr).map((pd) => {
+    const periods = (loc.group === 'library' && loc.accessNote) ? [] : periodsFor(loc, day, dateStr).map((pd) => {
       const cur = day === state.today && state.now >= pd.s && state.now < pd.e;
       return { l: pd.l, range: fmtRange(pd), cur };
     });
@@ -137,13 +137,13 @@ function capitalize(s) {
 }
 
 function renderRow(r) {
-  const barFill = r.st.kind === 'soon' ? '#b8a269' : '#34c759';
+  const barFill = r.st.kind === 'soon' ? '#8f713d' : '#23934d';
   const barW = Math.max(3, Math.min(100, r.live * 100)).toFixed(1) + '%';
   return `
     <button class="row-card${r.isOpen ? ' is-open' : ''}" data-action="open-row" data-id="${r.loc.id}">
       <div class="row-top">
         <div class="row-name-wrap">
-          <div class="row-name" style="color:${r.st.kind === 'closed' ? 'rgba(36,33,36,.66)' : '#242124'}">${esc(r.loc.name)}</div>
+          <div class="row-name" style="color:${r.st.kind === 'closed' ? 'rgba(5,30,57,.66)' : '#051e39'}">${esc(r.loc.name)}</div>
           <div class="row-place">${esc(r.loc.place)}</div>
         </div>
         <span class="pill" style="background:${r.p.bg};color:${r.p.ink}">
@@ -151,7 +151,7 @@ function renderRow(r) {
           <span class="pill-text">${esc(r.p.text)}</span>
         </span>
       </div>
-      <div class="row-sub" style="color:${r.isOpen ? 'rgba(36,33,36,.78)' : 'rgba(36,33,36,.62)'}">${esc(r.sub)}</div>
+      <div class="row-sub" style="color:${r.isOpen ? 'rgba(5,30,57,.78)' : 'rgba(5,30,57,.62)'}">${esc(r.sub)}</div>
       ${r.st.cur ? `<div class="row-bar-track"><div class="row-bar-fill" style="width:${barW};background:${barFill}"></div></div>` : ''}
       <div class="row-periods-wrap" data-periods-for="${r.loc.id}">${renderRowPeriods(r)}</div>
     </button>
@@ -159,7 +159,7 @@ function renderRow(r) {
 }
 
 function renderRowPeriods(r) {
-  if (r.loc.group === 'library') {
+  if (r.loc.group === 'library' && r.loc.accessNote) {
     return `
       <div class="row-periods">
         <div class="row-empty-note">${esc(r.loc.accessNote)}</div>
@@ -173,9 +173,9 @@ function renderRowPeriods(r) {
   return `
     <div class="row-periods">
       ${r.periods.map((p) => `
-        <div class="row-period" style="background:${p.cur ? 'rgba(0,48,87,.22)' : 'transparent'}">
-          <span class="row-period-label" style="color:${p.cur ? '#242124' : 'rgba(36,33,36,.55)'}">${esc(p.l)}</span>
-          <span class="row-period-range" style="color:${p.cur ? '#242124' : 'rgba(36,33,36,.55)'}">${esc(p.range)}</span>
+        <div class="row-period" style="background:${p.cur ? 'rgba(179,144,81,.22)' : 'transparent'}">
+          <span class="row-period-label" style="color:${p.cur ? '#051e39' : 'rgba(5,30,57,.55)'}">${esc(p.l)}</span>
+          <span class="row-period-range" style="color:${p.cur ? '#051e39' : 'rgba(5,30,57,.55)'}">${esc(p.range)}</span>
         </div>
       `).join('')}
       <span class="row-view-week" data-action="open-detail" data-id="${r.loc.id}">View full week &rsaquo;</span>
@@ -274,7 +274,7 @@ function renderToday() {
         ${renderGroup('Campus Services', `${rec.filter((x) => x.st.kind !== 'closed').length} open`, rowsRec)}
         ${renderGroup('Libraries', `${libs.filter((x) => x.st.kind === 'open').length} open`, rowsLibs)}
       `}
-      <div class="footnote">Posted schedule — update this line once real hours are added. Subject to change.</div>
+      <div class="footnote">Posted hours, checked Sep 23, 2026 from official Georgia Tech pages. Subject to change — this is a snapshot, not a live feed.</div>
     </div>
   `;
 }
@@ -336,10 +336,10 @@ function renderWeek() {
             ${loc.days.map((ps, i) => {
               ps = periodsFor(loc, i, dateKeyForDayIndex(i));
               const h = spanMinutes(ps) / 60;
-              let bg = 'rgba(36,33,36,.05)', ink = 'rgba(36,33,36,.45)', label = '·';
-              if (h >= 8) { bg = 'rgba(52,199,89,.85)'; ink = '#08130b'; label = Math.round(h); }
-              else if (h >= 4) { bg = 'rgba(52,199,89,.42)'; ink = '#eafff0'; label = Math.round(h); }
-              else if (h > 0) { bg = 'rgba(52,199,89,.18)'; ink = 'rgba(234,255,240,.9)'; label = Math.round(h); }
+              let bg = 'rgba(5,30,57,.05)', ink = 'rgba(5,30,57,.45)', label = '·';
+              if (h >= 8) { bg = 'rgba(35,147,77,.85)'; ink = '#08130b'; label = Math.round(h); }
+              else if (h >= 4) { bg = 'rgba(35,147,77,.42)'; ink = '#eafff0'; label = Math.round(h); }
+              else if (h > 0) { bg = 'rgba(35,147,77,.18)'; ink = 'rgba(234,255,240,.9)'; label = Math.round(h); }
               return `<span class="week-cell" style="background:${bg};color:${ink}">${label}</span>`;
             }).join('')}
           </button>
@@ -424,15 +424,15 @@ function renderStopDetail(stopId, stopName, info) {
       ${allWindowsForStop.map((w) => {
         const active = info.win === w;
         return `
-          <div class="period-card" style="background:${active ? 'rgba(52,199,89,.14)' : 'var(--card)'};border-color:${active ? 'rgba(52,199,89,.35)' : 'var(--border)'}">
+          <div class="period-card" style="background:${active ? 'rgba(35,147,77,.14)' : 'var(--card)'};border-color:${active ? 'rgba(35,147,77,.35)' : 'var(--border)'}">
             <div class="period-left">
-              <span class="period-dot" style="background:${active ? '#34c759' : 'rgba(0,48,87,.85)'}"></span>
+              <span class="period-dot" style="background:${active ? '#23934d' : '#8f713d'}"></span>
               <div>
-                <div class="period-name" style="color:#242124">${w.days === 'weekday' ? 'Weekdays' : 'Weekends'} · ${esc(w.variant)}</div>
-                <div class="period-state" style="color:${active ? '#1d8a3e' : 'rgba(36,33,36,.62)'}">${freqLabel(w.freq)}</div>
+                <div class="period-name" style="color:#051e39">${w.days === 'weekday' ? 'Weekdays' : 'Weekends'} · ${esc(w.variant)}</div>
+                <div class="period-state" style="color:${active ? '#176b38' : 'rgba(5,30,57,.62)'}">${freqLabel(w.freq)}</div>
               </div>
             </div>
-            <span class="period-range" style="color:#242124">${fmtClock(w.start)}–${fmtClock(w.end)}</span>
+            <span class="period-range" style="color:#051e39">${fmtClock(w.start)}–${fmtClock(w.end)}</span>
           </div>
         `;
       }).join('')}
@@ -457,11 +457,11 @@ function buildScheduleSection(schedule, day, dateStr) {
       l: pd.l,
       range: fmtRange(pd),
       state: cur ? 'Open now' : done ? 'Finished' : isToday ? 'Later today' : 'Scheduled',
-      bg: cur ? 'rgba(52,199,89,.14)' : 'var(--card)',
-      border: cur ? 'rgba(52,199,89,.35)' : 'var(--border)',
-      ink: done ? 'rgba(36,33,36,.45)' : '#242124',
-      subColor: cur ? '#1d8a3e' : 'rgba(36,33,36,.62)',
-      dot: cur ? '#34c759' : done ? 'rgba(36,33,36,.28)' : 'rgba(0,48,87,.85)'
+      bg: cur ? 'rgba(35,147,77,.14)' : 'var(--card)',
+      border: cur ? 'rgba(35,147,77,.35)' : 'var(--border)',
+      ink: done ? 'rgba(5,30,57,.45)' : '#051e39',
+      subColor: cur ? '#176b38' : 'rgba(5,30,57,.62)',
+      dot: cur ? '#23934d' : done ? 'rgba(5,30,57,.28)' : '#8f713d'
     };
   });
 
@@ -474,7 +474,7 @@ function buildScheduleSection(schedule, day, dateStr) {
       range: wps.length ? `${fmtTime(wps[0].s)} – ${fmtTime(wps[wps.length - 1].e)}` : 'Closed',
       meta: wps.length ? `${wps.length} ${wps.length > 1 ? 'periods' : 'period'}` : '—',
       isSel: i === day,
-      ink: wps.length ? '#242124' : 'rgba(36,33,36,.45)'
+      ink: wps.length ? '#051e39' : 'rgba(5,30,57,.45)'
     };
   });
 
@@ -506,13 +506,139 @@ function renderScheduleBlock(title, section, day) {
     <div class="posted-week-title">Posted week</div>
     <div class="posted-week">
       ${section.week.map((w) => `
-        <div class="posted-week-row" style="background:${w.isSel ? 'rgba(0,48,87,.16)' : 'transparent'};border-left-color:${w.isSel ? '#003057' : 'transparent'}">
+        <div class="posted-week-row" style="background:${w.isSel ? 'rgba(179,144,81,.18)' : 'transparent'};border-left-color:${w.isSel ? '#b39051' : 'transparent'}">
           <span class="posted-week-day" style="color:${w.ink}">${w.day}</span>
           <span class="posted-week-meta">${esc(w.meta)}</span>
           <span class="posted-week-range" style="color:${w.ink}">${esc(w.range)}</span>
         </div>
       `).join('')}
     </div>
+  `;
+}
+
+// ---------- Nested children (CRC "Inside the Rec Center" / Post Office "Amazon Lockers") ----------
+//
+// Some locations (CRC, Post Office) have child items that are independent
+// schedules navigable from within the parent's own detail page, rather than
+// separate main-list cards. They render as an accordion using the exact same
+// row-card markup/expand mechanism as the main list (data-action="open-row",
+// data-periods-for, state.openRows, justToggledId) — child ids are globally
+// unique strings, so no extra plumbing is needed to reuse that machinery.
+
+function renderLockerRow(child) {
+  return `
+    <div class="row-card is-open" style="cursor:default">
+      <div class="row-top">
+        <div class="row-name-wrap">
+          <div class="row-name" style="color:#051e39">${esc(child.name)}</div>
+        </div>
+        <span class="pill" style="background:var(--green-wash);color:var(--green-ink)">
+          <span class="pill-dot" style="background:var(--green)"></span>
+          <span class="pill-text">Open 24/7</span>
+        </span>
+      </div>
+      <div class="row-sub" style="color:rgba(5,30,57,.78)">Available every day, all day</div>
+    </div>
+  `;
+}
+
+function periodsRowsHtml(periods, isToday) {
+  return periods.map((pd) => {
+    const cur = isToday && state.now >= pd.s && state.now < pd.e;
+    return `
+      <div class="row-period" style="background:${cur ? 'rgba(179,144,81,.22)' : 'transparent'}">
+        <span class="row-period-label" style="color:${cur ? '#051e39' : 'rgba(5,30,57,.55)'}">${esc(pd.l)}</span>
+        <span class="row-period-range" style="color:${cur ? '#051e39' : 'rgba(5,30,57,.55)'}">${esc(fmtRange(pd))}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderWeeklyChildRow(child, day, dateStr, gated) {
+  const isToday = day === state.today;
+  const periods = gated ? [] : periodsFor(child, day, dateStr);
+  const st = gated ? { kind: 'closed', label: 'Closed', sub: 'CRC building is closed' } : statusFor(periods, isToday, state.now);
+  const p = pillFor(st);
+  const isOpen = st.kind === 'open' || st.kind === 'soon';
+  const sub = gated ? st.sub
+    : isOpen ? capitalize(st.sub)
+      : st.kind === 'later' ? `${st.sub} starts ${fmtTime(st.next.s)}`
+        : st.kind === 'sched' ? st.sub
+          : 'No service today';
+  return `
+    <button class="row-card${isOpen ? ' is-open' : ''}" data-action="open-row" data-id="${child.id}">
+      <div class="row-top">
+        <div class="row-name-wrap">
+          <div class="row-name" style="color:${st.kind === 'closed' ? 'rgba(5,30,57,.66)' : '#051e39'}">${esc(child.name)}</div>
+        </div>
+        <span class="pill" style="background:${p.bg};color:${p.ink}">
+          <span class="pill-dot" style="background:${p.dot}"></span>
+          <span class="pill-text">${esc(p.text)}</span>
+        </span>
+      </div>
+      <div class="row-sub" style="color:${isOpen ? 'rgba(5,30,57,.78)' : 'rgba(5,30,57,.62)'}">${esc(sub)}</div>
+      <div class="row-periods-wrap" data-periods-for="${child.id}">
+        <div class="row-periods">
+          ${gated
+            ? `<div class="row-empty-note">Closed while the CRC building is closed.</div>`
+            : periods.length
+              ? periodsRowsHtml(periods, isToday)
+              : `<div class="row-empty-note">Nothing posted for ${DAY_NAMES[day]}.</div>`}
+          ${child.note ? `<div class="row-empty-note" style="padding-top:6px">${esc(child.note)}</div>` : ''}
+        </div>
+      </div>
+    </button>
+  `;
+}
+
+function renderClimbingChildRow(child, day, dateStr, gated) {
+  const isToday = day === state.today;
+  const staffedPeriods = gated ? [] : periodsFor({ days: child.staffedDays }, day, dateStr);
+  const st = gated ? { kind: 'closed', label: 'Closed', sub: 'CRC building is closed' } : statusFor(staffedPeriods, isToday, state.now);
+  const p = pillFor(st);
+  const isOpen = st.kind === 'open' || st.kind === 'soon';
+  return `
+    <button class="row-card${isOpen ? ' is-open' : ''}" data-action="open-row" data-id="${child.id}">
+      <div class="row-top">
+        <div class="row-name-wrap">
+          <div class="row-name" style="color:${st.kind === 'closed' ? 'rgba(5,30,57,.66)' : '#051e39'}">${esc(child.name)}</div>
+          <div class="row-place">Staffed sessions shown below · unstaffed is reservation-only</div>
+        </div>
+        <span class="pill" style="background:${p.bg};color:${p.ink}">
+          <span class="pill-dot" style="background:${p.dot}"></span>
+          <span class="pill-text">${esc(p.text)}</span>
+        </span>
+      </div>
+      <div class="row-periods-wrap" data-periods-for="${child.id}">
+        <div class="row-periods">
+          <div class="row-empty-note" style="padding:2px 9px 4px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(5,30,57,.5)">Staffed</div>
+          ${gated
+            ? `<div class="row-empty-note">Closed while the CRC building is closed.</div>`
+            : staffedPeriods.length
+              ? periodsRowsHtml(staffedPeriods, isToday)
+              : `<div class="row-empty-note">No staffed session posted for ${DAY_NAMES[day]}.</div>`}
+          ${child.staffedNote ? `<div class="row-empty-note" style="padding-top:6px">${esc(child.staffedNote)}</div>` : ''}
+          <div class="row-empty-note" style="padding:10px 9px 4px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(5,30,57,.5)">Unstaffed — reservation only</div>
+          <div class="row-empty-note">${esc(child.unstaffedNote)}</div>
+          <a class="row-view-week" href="${child.bookingUrl}" target="_blank" rel="noopener">Book a slot &rsaquo;</a>
+        </div>
+      </div>
+    </button>
+  `;
+}
+
+function renderChildrenSection(loc, day, dateStr, parentStatus) {
+  if (!loc.children || !loc.children.length) return '';
+  const gated = !!(loc.childrenGatedByParent && parentStatus.kind === 'closed');
+  const rows = loc.children.map((child) => {
+    if (child.mode === 'allday') return renderLockerRow(child);
+    if (child.mode === 'climbing') return renderClimbingChildRow(child, day, dateStr, gated);
+    return renderWeeklyChildRow(child, day, dateStr, gated);
+  }).join('');
+  return `
+    <div class="detail-section-title" style="padding:22px 4px 11px">${esc(loc.childrenTitle || 'Details')}</div>
+    <div class="group-list">${rows}</div>
+    ${loc.childrenNote ? `<div class="note-callout">${esc(loc.childrenNote)}</div>` : ''}
   `;
 }
 
@@ -563,7 +689,8 @@ function renderDetail(id) {
       ${renderScheduleBlock(secondary ? loc.name : '', primary, day)}
       ${noteText ? `<div class="note-callout">${esc(noteText)}</div>` : ''}
       ${secondary ? `<div style="height:22px"></div>${renderScheduleBlock(loc.secondary.title, secondary, day)}` : ''}
-      <div class="footnote">Source: posted schedule — update this line with where the hours came from and when they were checked.</div>
+      ${renderChildrenSection(loc, day, dateStr, st)}
+      <div class="footnote">${loc.sourceUrl ? `Source: <a href="${loc.sourceUrl}" target="_blank" rel="noopener" style="color:inherit">official GT page</a>, checked ${esc(loc.checked || 'Sep 23, 2026')}.` : 'Posted schedule.'} Subject to change — verify time-sensitive plans against the source.</div>
     </div>
   `;
 }
@@ -586,9 +713,9 @@ function renderLibraryDetail(lib) {
     // way as every other row instead of switching to a live "Open" pill.
     const rst = libraryRowStatus(lib, ds, false);
     const isSel = i === day;
-    const ink = rst.kind === 'open' ? '#1d8a3e' : rst.kind === 'unknown' ? '#7a6a3a' : 'rgba(36,33,36,.55)';
+    const ink = rst.kind === 'open' ? '#176b38' : rst.kind === 'unknown' ? '#6b5527' : 'rgba(5,30,57,.55)';
     return `
-      <div class="posted-week-row" style="background:${isSel ? 'rgba(0,48,87,.16)' : 'transparent'};border-left-color:${isSel ? '#003057' : 'transparent'}">
+      <div class="posted-week-row" style="background:${isSel ? 'rgba(179,144,81,.18)' : 'transparent'};border-left-color:${isSel ? '#b39051' : 'transparent'}">
         <span class="posted-week-day" style="color:${ink}">${DAY_NAMES[i].slice(0, 3)}</span>
         <span class="posted-week-meta">${esc(rst.label)}</span>
         <span class="posted-week-range" style="color:${ink}"></span>
